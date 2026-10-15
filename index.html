@@ -1784,7 +1784,7 @@ void main(){
   function opts(rm) {
     return {
       interactive: true, strength: 1, radius: 200, density: 1, dotSize: 1, spread: 1, turbulence: 1,
-      liquid: 1, streaks: true, restStyle: "image", returnSpeed: 1, ambient: coarse.matches, ambientIntensity: 1.4,
+      liquid: 1, streaks: true, restStyle: "image", returnSpeed: 1, ambient: false, ambientIntensity: 1,
       speed: 1, intro: true, reducedMotion: rm, bg: bg, imgBg: null
     };
   }
@@ -1869,7 +1869,7 @@ void main(){
   // Touch devices have no hover, so every few seconds a virtual pointer sweeps across the logo
   // and stirs the liquid the way a mouse does on a computer. Pauses while the user touches, or when offscreen.
   var heroVisible = true, userTouching = false, stirTimer = 0, stirRaf = 0, stirDir = 1;
-  var autoStir = coarse.matches && !rmq.matches;
+  var autoStir = false;   // v33: off. The logo moves only on touch/drag (and the intro at load), same as on a computer.
   function cancelStir() { clearTimeout(stirTimer); stirTimer = 0; if (stirRaf) { cancelAnimationFrame(stirRaf); stirRaf = 0; if (engine && lastRect) engine.pointer("leave", -100, -100, false); } }
   function scheduleStir(delay) {
     if (!autoStir) return;
@@ -1891,7 +1891,6 @@ void main(){
     }
     stirRaf = requestAnimationFrame(step);
   }
-  scheduleStir(4500);
 
   relayout();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
