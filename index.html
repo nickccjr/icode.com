@@ -1614,31 +1614,48 @@ void main(){
   }
   function wake() { if (!running) { running = true; prevT = 0; requestAnimationFrame(frame); } }
 
-  window.addEventListener("pointermove", function (e) {
-    var x = e.clientX, y = e.clientY;
-    if (e.pointerType === "touch" && e.buttons === 0 && e.pressure === 0) return;
-    if (last) {
-      var dx = x - last.x, dy = y - last.y, d = Math.sqrt(dx * dx + dy * dy);
-      var n = Math.min(24, Math.floor(d / CONFIG.spacing));
-      // particles trail slightly behind the motion
-      var vx = -dx * 0.6, vy = -dy * 0.6;
-      for (var k = 1; k <= n; k++) spawn(last.x + dx * k / n, last.y + dy * k / n, vx, vy);
-      if (n) wake();
-      if (n || d > 40) last = { x: x, y: y };
-    } else last = { x: x, y: y };
-  }, { passive: true });
-
-  window.addEventListener("pointerdown", function (e) {
-    last = { x: e.clientX, y: e.clientY };
-    for (var k = 0; k < CONFIG.burst; k++) {
-      var a = k / CONFIG.burst * 6.2832, sp = rnd(60, 140);
-      spawn(e.clientX, e.clientY, Math.cos(a) * sp, Math.sin(a) * sp);
+  // follow a moving point (mouse or finger)
+  function moveTo(x, y) {
+    if (!last) { last = { x: x, y: y }; return; }
+    var dx = x - last.x, dy = y - last.y, d = Math.sqrt(dx * dx + dy * dy);
+    var n = Math.min(24, Math.floor(d / CONFIG.spacing));
+    var vx = -dx * 0.6, vy = -dy * 0.6;           // particles trail slightly behind the motion
+    for (var k = 1; k <= n; k++) spawn(last.x + dx * k / n, last.y + dy * k / n, vx, vy);
+    if (n) wake();
+    if (n || d > 40) last = { x: x, y: y };
+  }
+  function burstAt(x, y, count) {
+    last = { x: x, y: y };
+    for (var k = 0; k < count; k++) {
+      var a = k / count * 6.2832, sp = rnd(60, 140);
+      spawn(x, y, Math.cos(a) * sp, Math.sin(a) * sp);
     }
     wake();
+  }
+
+  // mouse / pen
+  window.addEventListener("pointermove", function (e) {
+    if (e.pointerType === "touch") return;          // touch is handled below
+    moveTo(e.clientX, e.clientY);
   }, { passive: true });
-  window.addEventListener("pointerup", function (e) { if (e.pointerType === "touch") last = null; }, { passive: true });
+  window.addEventListener("pointerdown", function (e) {
+    if (e.pointerType === "touch") return;
+    burstAt(e.clientX, e.clientY, CONFIG.burst);
+  }, { passive: true });
   document.addEventListener("pointerleave", function () { last = null; });
   window.addEventListener("blur", function () { last = null; });
+
+  // touch: touchmove keeps firing while the finger scrolls the page
+  // (pointer events stop once the browser takes over the scroll, which is why only taps showed before)
+  window.addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; if (!t) return;
+    burstAt(t.clientX, t.clientY, Math.round(CONFIG.burst * 0.6));
+  }, { passive: true });
+  window.addEventListener("touchmove", function (e) {
+    var t = e.touches[0]; if (t) moveTo(t.clientX, t.clientY);
+  }, { passive: true });
+  window.addEventListener("touchend", function (e) { if (!e.touches.length) last = null; }, { passive: true });
+  window.addEventListener("touchcancel", function () { last = null; }, { passive: true });
 
   window.addEventListener("resize", resize);
   resize();
