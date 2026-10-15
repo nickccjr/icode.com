@@ -1013,6 +1013,25 @@ footer .foot-links a:hover { color: var(--accent); }
 @media (max-width: 1000px) { .gz-extras { grid-template-columns: 1fr 1fr; } .gz-extras .gz-chips { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .gz-extras { grid-template-columns: 1fr; gap: 16px; margin-top: 16px; } .gz-extras .placeholder.metal { padding: 22px; } .gz-note.placeholder.metal { padding-right: 80px; } .gz-quote .q { font-size: 20px !important; } }
 @media (prefers-reduced-motion: reduce) { .placeholder.metal .details { animation: none; } .placeholder.metal > .gz-btn, .placeholder.metal > .gz-note-arrow { transition: none; } }
+
+/* ===== v41: chrome stroke 5px ===== */
+.placeholder.metal .mt-face { inset: 5px; border-radius: 21px; }
+.placeholder.metal > .gz-deco { inset: 5px !important; border-radius: 21px; }
+.gz-plus { top: 13px; right: 13px; }
+.gz-big { right: 8px; bottom: -26px; }
+.gz-arrow { right: 13px; }
+@media (max-width: 640px) { .gz-big { bottom: -22px; } }
+
+/* ===== v42: contact cards keep the original 3px stroke ===== */
+.contact .placeholder.metal .mt-face { inset: 3px; border-radius: 23px; }
+.contact .placeholder.metal > .gz-deco { inset: 3px !important; border-radius: 23px; }
+.contact .gz-arrow { right: 15px; }
+
+/* ===== v43: Quick note / Mindset / Chips cards without the running chrome stroke ===== */
+.placeholder.metal.no-rim .mt-face { inset: 0; border-radius: inherit; }
+.placeholder.metal.no-rim { box-shadow: 0 0 0 1px rgba(12,16,15,.08), 0 20px 30px -22px rgba(12,16,15,.35); }
+.placeholder.metal.no-rim:hover { box-shadow: 0 0 0 1px rgba(12,16,15,.12), 0 28px 36px -24px rgba(12,16,15,.45); }
+.placeholder.metal.no-rim.is-pressed { box-shadow: 0 0 0 1px rgba(12,16,15,.14), 0 1px 2px rgba(12,16,15,.2); }
 </style>
 </head>
 <body>
@@ -1144,9 +1163,9 @@ footer .foot-links a:hover { color: var(--accent); }
         <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 15l4-4 4 3 4-6 4 2"/></svg></span><span class="num">STEP 04</span><h3>นำเสนองาน</h3><p>เล่าผลงานให้คนอื่นเข้าใจ ทั้งโปสเตอร์ สไลด์ และการพูด</p><div class="details" id="how-d4" hidden><span>SHARE THE STORY ↗</span>เล่าจากโจทย์ วิธีทำ และสิ่งที่ค้นพบ พร้อมบอกข้อจำกัดอย่างตรงไปตรงมา</div><button type="button" class="gz-btn" aria-expanded="false" aria-controls="how-d4" aria-label="ดูเพิ่มเติม: นำเสนองาน"></button></div>
       </div>
       <div class="gz-extras">
-        <div class="placeholder gz-paper gz-note"><span class="mini-label">✳ QUICK NOTE</span><h3>ไม่ต้องเป๊ะตั้งแต่ครั้งแรก</h3><p class="mono">ลอง → เรียนรู้ → ปรับ → ลองใหม่</p><span class="gz-note-arrow" aria-hidden="true">↗</span></div>
-        <div class="placeholder gz-ink gz-quote"><span class="mini-label">THE MINDSET</span><p class="q">“ทุกคำถามเล็ก ๆ<br>อาจพาไปเจอ<span>ไอเดียใหญ่</span>”</p></div>
-        <div class="placeholder gz-lav gz-chips"><span class="mini-label">LITTLE THINGS, BIG ENERGY</span><div class="chip-row"><span class="chip">✦ Curious minds</span><span class="chip purple">อยู่ระหว่างทดลอง ↗</span><span class="chip outline">ลองอีกสักตั้ง ☺</span></div><p>ป้ายสั้น ๆ สำหรับหัวข้อ สถานะ หรือโน้ตในเว็บ</p></div>
+        <div class="placeholder no-rim gz-paper gz-note"><span class="mini-label">✳ QUICK NOTE</span><h3>ไม่ต้องเป๊ะตั้งแต่ครั้งแรก</h3><p class="mono">ลอง → เรียนรู้ → ปรับ → ลองใหม่</p><span class="gz-note-arrow" aria-hidden="true">↗</span></div>
+        <div class="placeholder no-rim gz-ink gz-quote"><span class="mini-label">THE MINDSET</span><p class="q">“ทุกคำถามเล็ก ๆ<br>อาจพาไปเจอ<span>ไอเดียใหญ่</span>”</p></div>
+        <div class="placeholder no-rim gz-lav gz-chips"><span class="mini-label">LITTLE THINGS, BIG ENERGY</span><div class="chip-row"><span class="chip">✦ Curious minds</span><span class="chip purple">อยู่ระหว่างทดลอง ↗</span><span class="chip outline">ลองอีกสักตั้ง ☺</span></div><p>ป้ายสั้น ๆ สำหรับหัวข้อ สถานะ หรือโน้ตในเว็บ</p></div>
       </div>
     </div>
   </section>
@@ -2886,6 +2905,7 @@ void main() {
     var canvas = document.createElement("canvas"); canvas.className = "mt-rim"; canvas.setAttribute("aria-hidden", "true");
     var face = document.createElement("span"); face.className = "mt-face"; face.setAttribute("aria-hidden", "true");
     card.insertBefore(face, card.firstChild); card.insertBefore(canvas, card.firstChild);
+    if (card.classList.contains("no-rim")) { canvas.remove(); return; }      // flat card: coloured face only, no metallic stroke
     if (!ok) { card.classList.add("mt-fallback"); return; }
     var scale = 1, speed = reduced ? 0 : IDLE, frame = 0, last = performance.now(), raf = 0, inView = true, tw = 0, th = 0;
     function resize() {
