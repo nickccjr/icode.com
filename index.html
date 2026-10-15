@@ -910,6 +910,109 @@ footer .foot-links a:hover { color: var(--accent); }
   .nav-links .nav-short { display: inline; }
 }
 @media (max-width: 640px) and (min-width: 421px) { .site-head .btn.induction { flex: none; } }
+/* ===== v36: Gen Z card faces inside the chrome rim: deep teal (#0F6357) / ink / paper / lavender, pill chips, "+" buttons, big step numerals ===== */
+:root { --gz-teal: #0F6357; --gz-teal-hi: #1A8273; --gz-teal-deep: #0A4A41; --gz-ink: #0C100F; --gz-ink-2: #22282A;
+  --gz-paper: #F2F4ED; --gz-paper-2: #E4E8DE; --gz-lav: #D6EEE8; --gz-lav-2: #B4DED3; --gz-light: #F3F6F2; --gz-light-muted: rgba(243,246,242,.76); }
+.placeholder.metal { padding: 26px 26px 28px; }
+.placeholder.metal:hover:not(.is-pressed) { transform: translateY(-4px); }
+.placeholder.metal .mt-face { background: radial-gradient(120% 90% at 10% 0%, #FFFFFF 0%, rgba(255,255,255,0) 55%), linear-gradient(160deg, var(--gz-paper) 0%, var(--gz-paper-2) 100%); overflow: hidden; }
+.placeholder.metal.gz-lime .mt-face { background: radial-gradient(120% 90% at 88% 100%, #23907F 0%, rgba(35,144,127,0) 55%), linear-gradient(160deg, var(--gz-teal-hi) 0%, var(--gz-teal) 50%, var(--gz-teal-deep) 100%); }
+.placeholder.metal.gz-ink .mt-face { background: radial-gradient(75% 65% at 100% 100%, rgba(15,99,87,.95) 0%, rgba(15,99,87,.4) 40%, rgba(15,99,87,0) 66%), linear-gradient(160deg, var(--gz-ink-2) 0%, var(--gz-ink) 65%); }
+.placeholder.metal.gz-ink .mt-face::after { content: ""; position: absolute; inset: -50%; pointer-events: none; opacity: .22; mix-blend-mode: overlay; background-size: 220px 220px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.6 -.35'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.placeholder.metal.gz-lav .mt-face { background: radial-gradient(120% 90% at 12% 0%, #F2FBF8 0%, rgba(242,251,248,0) 55%), radial-gradient(90% 70% at 95% 100%, rgba(15,99,87,.22) 0%, rgba(15,99,87,0) 60%), linear-gradient(160deg, var(--gz-lav) 0%, var(--gz-lav-2) 100%); }
+/* type */
+.placeholder.metal h3, .placeholder.metal .step h3, .step.placeholder.metal h3 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25; margin: 10px 0 6px; color: var(--gz-ink); text-shadow: none; }
+.placeholder.metal p, .placeholder.metal .step p, .step.placeholder.metal p { font-size: 15px; line-height: 1.6; color: #45504D; }
+.placeholder.metal.gz-ink, .placeholder.metal.gz-ink h3, .placeholder.metal.gz-lime, .placeholder.metal.gz-lime h3 { color: var(--gz-light); }
+.placeholder.metal.gz-ink p, .placeholder.metal.gz-ink .step p, .step.placeholder.metal.gz-ink p,
+.placeholder.metal.gz-lime p, .placeholder.metal.gz-lime .step p, .step.placeholder.metal.gz-lime p { color: var(--gz-light-muted); }
+/* chips: labels and STEP numbers */
+.placeholder.metal .label, .placeholder.metal .num, .step.placeholder.metal .num { display: inline-flex; align-items: center; gap: 7px; width: max-content; max-width: 100%; height: 26px; padding: 0 11px 0 9px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; line-height: 1; background: var(--gz-ink); color: #FFFFFF; }
+.placeholder.metal .label::before, .placeholder.metal .num::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--gz-teal-hi); }
+.placeholder.metal.gz-lime .label, .placeholder.metal.gz-lime .num { background: #FFFFFF; color: var(--gz-teal); }
+.placeholder.metal.gz-lime .label::before, .placeholder.metal.gz-lime .num::before { background: var(--gz-teal); }
+.placeholder.metal.gz-ink .label, .placeholder.metal.gz-ink .num { background: var(--gz-teal); color: #FFFFFF; }
+.placeholder.metal.gz-ink .label::before, .placeholder.metal.gz-ink .num::before { background: #FFFFFF; }
+.placeholder.metal.gz-lav .label, .placeholder.metal.gz-lav .num { background: var(--gz-ink); color: var(--gz-lav); }
+/* icons */
+.placeholder.metal .ic, .placeholder.metal .cic, .step.placeholder.metal .ic, .contact .placeholder.metal .cic { width: 46px; height: 46px; border-radius: 15px; background: var(--gz-ink); color: #FFFFFF; box-shadow: none; margin-bottom: 14px; }
+.placeholder.metal.gz-lime .ic, .placeholder.metal.gz-lime .cic { background: #FFFFFF; color: var(--gz-teal); }
+.placeholder.metal.gz-ink .ic, .placeholder.metal.gz-ink .cic { background: var(--gz-teal); color: #FFFFFF; }
+.placeholder.metal.gz-lav .ic, .placeholder.metal.gz-lav .cic { background: var(--gz-ink); color: var(--gz-lav); }
+.placeholder.metal .ic svg, .placeholder.metal .cic svg, .step.placeholder.metal .ic svg, .contact .placeholder.metal .cic svg { width: 22px; height: 22px; stroke-width: 2; }
+.contact .placeholder.metal .cic { margin-bottom: 0; }
+/* decorations: "+" corner button, big step numeral, contact arrow */
+.placeholder.metal > .gz-deco { position: absolute !important; inset: 0 !important; pointer-events: none; border-radius: inherit; overflow: hidden; }
+.gz-plus { position: absolute; top: 18px; right: 18px; width: 34px; height: 34px; border-radius: 50%; background: var(--gz-ink); color: #FFFFFF;
+  transition: transform .45s cubic-bezier(.34,1.56,.64,1), background-color .2s, color .2s; }
+.gz-plus::before, .gz-plus::after { content: ""; position: absolute; left: 50%; top: 50%; background: currentColor; border-radius: 2px; transform: translate(-50%,-50%); }
+.gz-plus::before { width: 14px; height: 2px; } .gz-plus::after { width: 2px; height: 14px; }
+.gz-lime .gz-plus { background: #FFFFFF; color: var(--gz-teal); }
+.gz-ink .gz-plus { background: #FFFFFF; color: var(--gz-ink); }
+.gz-lav .gz-plus { background: var(--gz-ink); color: var(--gz-lav); }
+.placeholder.metal:hover .gz-plus { transform: rotate(90deg) scale(1.1); }
+.gz-big { position: absolute; right: 12px; bottom: -22px; font-family: var(--font-display); font-size: 118px; font-weight: 800; line-height: 1; letter-spacing: -.05em; color: rgba(12,16,15,.08); user-select: none; }
+.gz-lime .gz-big { color: rgba(255,255,255,.14); }
+.gz-ink .gz-big { color: rgba(26,130,115,.42); }
+.gz-lav .gz-big { color: rgba(15,99,87,.16); }
+.gz-arrow { position: absolute; right: 18px; top: 50%; width: 40px; height: 40px; margin-top: -20px; border-radius: 50%; border: 1.5px solid var(--gz-ink); color: var(--gz-ink); display: grid; place-items: center;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), background-color .2s, color .2s, border-color .2s; }
+.gz-arrow svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.gz-lime .gz-arrow { border-color: #FFFFFF; color: #FFFFFF; }
+.gz-ink .gz-arrow { border-color: var(--gz-teal-hi); color: #FFFFFF; }
+.placeholder.metal:hover .gz-arrow { transform: translate(3px, -3px); background: var(--gz-ink); color: #FFFFFF; border-color: var(--gz-ink); }
+.placeholder.metal.gz-lime:hover .gz-arrow { background: #FFFFFF; color: var(--gz-teal); border-color: #FFFFFF; }
+.placeholder.metal.gz-ink:hover .gz-arrow { background: var(--gz-teal); color: #FFFFFF; border-color: var(--gz-teal); }
+.contact .placeholder.metal { padding: 22px 76px 22px 24px; }
+.placeholder.metal .mt-ripple { background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 70%); mix-blend-mode: overlay; }
+@media (max-width: 640px) {
+  .placeholder.metal { padding: 22px 22px 24px; }
+  .placeholder.metal h3, .step.placeholder.metal h3 { font-size: 20px; }
+  .gz-big { font-size: 96px; bottom: -18px; }
+  .contact .placeholder.metal { padding: 20px 72px 20px 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .gz-plus, .gz-arrow, .placeholder.metal { transition: none; } }
+/* ===== v39: "วิธีการเรียนรู้" — expandable step cards (+ opens a tip) and the extras row (note / mindset / chips) ===== */
+.placeholder.metal > .gz-btn { position: absolute !important; top: 18px; right: 18px; z-index: 4 !important; width: 34px; height: 34px; margin: 0; padding: 0; border: 0; border-radius: 50%; cursor: pointer; pointer-events: auto;
+  background: var(--gz-ink); color: #fff; transition: transform .45s cubic-bezier(.34,1.56,.64,1), background-color .2s, color .2s; -webkit-tap-highlight-color: transparent; }
+.placeholder.metal > .gz-btn::before, .placeholder.metal > .gz-btn::after { content: ""; position: absolute; left: 50%; top: 50%; background: currentColor; border-radius: 2px; transform: translate(-50%,-50%); transition: transform .3s ease; }
+.placeholder.metal > .gz-btn::before { width: 14px; height: 2px; } .placeholder.metal > .gz-btn::after { width: 2px; height: 14px; }
+.placeholder.metal > .gz-btn[aria-expanded="true"]::after { transform: translate(-50%,-50%) scaleY(0); }
+.placeholder.metal > .gz-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(26,130,115,.65); }
+.placeholder.metal.gz-lime > .gz-btn { background: #fff; color: var(--gz-teal); }
+.placeholder.metal.gz-ink > .gz-btn { background: #fff; color: var(--gz-ink); }
+.placeholder.metal.gz-lav > .gz-btn { background: var(--gz-ink); color: var(--gz-lav); }
+.placeholder.metal:hover > .gz-btn { transform: rotate(90deg) scale(1.1); }
+.placeholder.metal > .gz-btn[aria-expanded="true"] { transform: none; }
+.placeholder.metal .details { margin-top: 6px; padding: 12px 14px; border-radius: 16px; font-size: 14px; line-height: 1.55; background: rgba(12,16,15,.06); color: var(--gz-ink); animation: gzPop .35s cubic-bezier(.34,1.56,.64,1); }
+.placeholder.metal .details[hidden] { display: none; }
+.placeholder.metal .details > span { display: block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gz-teal); margin-bottom: 4px; }
+.placeholder.metal.gz-lime .details, .placeholder.metal.gz-ink .details { background: rgba(255,255,255,.12); color: var(--gz-light); }
+.placeholder.metal.gz-lime .details > span, .placeholder.metal.gz-ink .details > span { color: #fff; }
+@keyframes gzPop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+/* extras row */
+.gz-extras { display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 20px; margin-top: 20px; }
+.gz-extras .placeholder.metal { padding: 24px 26px 26px; }
+.gz-extras .mini-label { display: inline-block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gz-teal); margin-bottom: 2px; }
+.gz-extras .gz-ink .mini-label { color: var(--gz-teal-hi); }
+.gz-note.placeholder.metal { padding-right: 86px; }
+.gz-note h3 { margin-top: 4px !important; }
+.gz-note .mono { font-family: var(--font-mono); font-size: 13px !important; }
+.placeholder.metal > .gz-note-arrow { position: absolute !important; right: 20px; top: 50%; z-index: 4 !important; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%; border: 1.5px solid var(--gz-ink); display: grid; place-items: center; font-size: 20px; line-height: 1; color: var(--gz-ink);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), background-color .2s, color .2s; }
+.gz-note.placeholder.metal:hover > .gz-note-arrow { background: var(--gz-ink); color: #fff; transform: translate(3px,-3px); }
+.gz-quote .q { margin: 2px 0 0 !important; font-family: var(--font-display); font-size: 22px !important; font-weight: 600; line-height: 1.35 !important; color: var(--gz-light) !important; }
+.gz-quote .q span { display: inline-block; padding: 0 .35em; border-radius: .45em; background: var(--gz-teal); color: #fff; }
+.gz-chips .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+.gz-chips .chip { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: var(--gz-ink); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.gz-chips .chip.purple { background: var(--gz-teal); color: #fff; }
+.gz-chips .chip.outline { background: transparent; color: var(--gz-ink); box-shadow: inset 0 0 0 1.5px var(--gz-ink); }
+.gz-chips p { font-size: 14px !important; }
+@media (max-width: 1000px) { .gz-extras { grid-template-columns: 1fr 1fr; } .gz-extras .gz-chips { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .gz-extras { grid-template-columns: 1fr; gap: 16px; margin-top: 16px; } .gz-extras .placeholder.metal { padding: 22px; } .gz-note.placeholder.metal { padding-right: 80px; } .gz-quote .q { font-size: 20px !important; } }
+@media (prefers-reduced-motion: reduce) { .placeholder.metal .details { animation: none; } .placeholder.metal > .gz-btn, .placeholder.metal > .gz-note-arrow { transition: none; } }
 </style>
 </head>
 <body>
@@ -1035,10 +1138,15 @@ footer .foot-links a:hover { color: var(--accent); }
       </div>
       <div class="steps-line" aria-hidden="true"></div>
       <div class="steps">
-        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="num">STEP 01</span><h3>ตั้งคำถาม</h3><p>หาโจทย์จากปัญหาจริงรอบตัว และกำหนดคำถามวิจัยให้ชัด</p></div>
-        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/></svg></span><span class="num">STEP 02</span><h3>ออกแบบวิธีการ</h3><p>วางแผนเก็บข้อมูลและเลือกเครื่องมือที่เหมาะกับโจทย์</p></div>
-        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></svg></span><span class="num">STEP 03</span><h3>เขียนโค้ดและวิเคราะห์ผล</h3><p>ลงมือทำด้วยโค้ดจริง อ่านผลและสรุปสิ่งที่ค้นพบ</p></div>
-        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 15l4-4 4 3 4-6 4 2"/></svg></span><span class="num">STEP 04</span><h3>นำเสนองาน</h3><p>เล่าผลงานให้คนอื่นเข้าใจ ทั้งโปสเตอร์ สไลด์ และการพูด</p></div>
+        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="num">STEP 01</span><h3>ตั้งคำถาม</h3><p>หาโจทย์จากปัญหาจริงรอบตัว และกำหนดคำถามวิจัยให้ชัด</p><div class="details" id="how-d1" hidden><span>TRY THIS ↗</span>เขียนสิ่งที่สงสัย 3 ข้อ แล้วเลือกข้อที่คุณอยากหาคำตอบที่สุด</div><button type="button" class="gz-btn" aria-expanded="false" aria-controls="how-d1" aria-label="ดูเพิ่มเติม: ตั้งคำถาม"></button></div>
+        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20V9l6-5 6 5v11"/><path d="M10 20v-6h4v6"/></svg></span><span class="num">STEP 02</span><h3>ออกแบบวิธีการ</h3><p>วางแผนเก็บข้อมูลและเลือกเครื่องมือที่เหมาะกับโจทย์</p><div class="details" id="how-d2" hidden><span>PLAN IT OUT ↗</span>ระบุข้อมูลที่ต้องใช้ วิธีเก็บ และวิธีตรวจสอบ ก่อนเริ่มลงมือ</div><button type="button" class="gz-btn" aria-expanded="false" aria-controls="how-d2" aria-label="ดูเพิ่มเติม: ออกแบบวิธีการ"></button></div>
+        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></svg></span><span class="num">STEP 03</span><h3>เขียนโค้ดและวิเคราะห์ผล</h3><p>ลงมือทำด้วยโค้ดจริง อ่านผลและสรุปสิ่งที่ค้นพบ</p><div class="details" id="how-d3" hidden><span>BUILD &amp; LEARN ↗</span>เริ่มจากตัวอย่างเล็ก ๆ ตรวจสอบความถูกต้อง แล้วค่อยขยายการทดลอง</div><button type="button" class="gz-btn" aria-expanded="false" aria-controls="how-d3" aria-label="ดูเพิ่มเติม: เขียนโค้ดและวิเคราะห์ผล"></button></div>
+        <div class="placeholder step"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 15l4-4 4 3 4-6 4 2"/></svg></span><span class="num">STEP 04</span><h3>นำเสนองาน</h3><p>เล่าผลงานให้คนอื่นเข้าใจ ทั้งโปสเตอร์ สไลด์ และการพูด</p><div class="details" id="how-d4" hidden><span>SHARE THE STORY ↗</span>เล่าจากโจทย์ วิธีทำ และสิ่งที่ค้นพบ พร้อมบอกข้อจำกัดอย่างตรงไปตรงมา</div><button type="button" class="gz-btn" aria-expanded="false" aria-controls="how-d4" aria-label="ดูเพิ่มเติม: นำเสนองาน"></button></div>
+      </div>
+      <div class="gz-extras">
+        <div class="placeholder gz-paper gz-note"><span class="mini-label">✳ QUICK NOTE</span><h3>ไม่ต้องเป๊ะตั้งแต่ครั้งแรก</h3><p class="mono">ลอง → เรียนรู้ → ปรับ → ลองใหม่</p><span class="gz-note-arrow" aria-hidden="true">↗</span></div>
+        <div class="placeholder gz-ink gz-quote"><span class="mini-label">THE MINDSET</span><p class="q">“ทุกคำถามเล็ก ๆ<br>อาจพาไปเจอ<span>ไอเดียใหญ่</span>”</p></div>
+        <div class="placeholder gz-lav gz-chips"><span class="mini-label">LITTLE THINGS, BIG ENERGY</span><div class="chip-row"><span class="chip">✦ Curious minds</span><span class="chip purple">อยู่ระหว่างทดลอง ↗</span><span class="chip outline">ลองอีกสักตั้ง ☺</span></div><p>ป้ายสั้น ๆ สำหรับหัวข้อ สถานะ หรือโน้ตในเว็บ</p></div>
       </div>
     </div>
   </section>
@@ -2486,7 +2594,7 @@ window.GLPool = (function () {
    v32: renders through the shared GLPool context instead of one WebGL context per card. */
 (function () {
   var VS = `#version 300 es
-precision mediump float;
+precision highp float;
 
 layout(location = 0) in vec4 a_position;
 
@@ -2564,7 +2672,7 @@ void main() {
   v_responsiveUV.x /= responsiveRatio;
 }`;
   var FS = `#version 300 es
-precision mediump float;
+precision highp float;
 
 uniform vec2 u_resolution;
 uniform float u_time;
@@ -3088,6 +3196,40 @@ void main() {
   new MutationObserver(function () { if (!pending) pending = setTimeout(reveal, 80); }).observe(ul, { attributes: true, subtree: true, attributeFilter: ["class"] });
   window.addEventListener("resize", function () { if (!pending) pending = setTimeout(reveal, 120); });
   reveal();
+})();
+</script>
+<script>
+/* Gen Z card decorations: colour variant per card, "+" corner button, big step numeral, arrow on contact cards */
+(function () {
+  var plan = [
+    { sel: ".about-grid > .placeholder", kinds: ["gz-paper", "gz-lime", "gz-ink"], plus: true },
+    { sel: ".steps > .placeholder", kinds: ["gz-paper", "gz-lime", "gz-ink", "gz-lav"], plus: false, big: true },
+    { sel: ".contact > .placeholder", kinds: ["gz-lime", "gz-ink", "gz-paper"], arrow: true }
+  ];
+  plan.forEach(function (p) {
+    Array.prototype.slice.call(document.querySelectorAll(p.sel)).forEach(function (card, i) {
+      card.classList.add(p.kinds[i % p.kinds.length]);
+      var deco = document.createElement("span"); deco.className = "gz-deco"; deco.setAttribute("aria-hidden", "true");
+      if (p.big) { var big = document.createElement("span"); big.className = "gz-big"; big.textContent = String(i + 1).padStart(2, "0"); deco.appendChild(big); }
+      if (p.plus) { var plus = document.createElement("span"); plus.className = "gz-plus"; deco.appendChild(plus); }
+      if (p.arrow) { var ar = document.createElement("span"); ar.className = "gz-arrow"; ar.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg>'; deco.appendChild(ar); }
+      var face = card.querySelector(".mt-face");           // sits right above the face and below the text (same stacking level, DOM order)
+      if (face) card.insertBefore(deco, face.nextSibling); else card.insertBefore(deco, card.firstChild);
+    });
+  });
+})();
+</script>
+<script>
+/* step cards: "+" opens the tip, "−" closes it */
+(function () {
+  Array.prototype.slice.call(document.querySelectorAll(".gz-btn")).forEach(function (b) {
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = b.getAttribute("aria-expanded") === "true", d = document.getElementById(b.getAttribute("aria-controls"));
+      b.setAttribute("aria-expanded", String(!open)); if (d) d.hidden = open;
+      var card = b.closest(".placeholder"); if (card) card.classList.toggle("expanded", !open);
+    });
+  });
 })();
 </script>
 </body>
