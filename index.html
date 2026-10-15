@@ -885,6 +885,10 @@ footer .foot-links a:hover { color: var(--accent); }
 .dtr[data-dragged] .dtr-hint { opacity: 0; }
 .dtr[data-mode="strip"] .dtr-ctl { position: static; justify-content: flex-end; padding: 14px 20px 0; }
 @media (prefers-reduced-motion: reduce) { .dtr-ctl .dtr-pause { display: none; } }
+/* ===== v31: static-logo fallback still moves a little when WebGL2 is unavailable ===== */
+.sh-root[data-gl="off"] .sh-fallback { animation: shFloat 6s ease-in-out infinite; }
+@keyframes shFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .sh-root[data-gl="off"] .sh-fallback { animation: none; } }
 </style>
 </head>
 <body>
@@ -1770,7 +1774,7 @@ void main(){
   var img = root.querySelector(".sh-fallback");
   var hint = root.querySelector(".sh-hint");
   var content = root.querySelector(".sh-content");
-  var aspect = 7.32, isMobile = null, current = "", engine = null;
+  var aspect = 7.32, isMobile = null, current = "", engine = null, lastRect = null;
 
   var rmq = window.matchMedia("(prefers-reduced-motion: reduce)");
   var coarse = window.matchMedia("(hover: none), (pointer: coarse)");
@@ -1780,7 +1784,7 @@ void main(){
   function opts(rm) {
     return {
       interactive: true, strength: 1, radius: 200, density: 1, dotSize: 1, spread: 1, turbulence: 1,
-      liquid: 1, streaks: true, restStyle: "image", returnSpeed: 1, ambient: false, ambientIntensity: 1,
+      liquid: 1, streaks: true, restStyle: "image", returnSpeed: 1, ambient: coarse.matches, ambientIntensity: 1.4,
       speed: 1, intro: true, reducedMotion: rm, bg: bg, imgBg: null
     };
   }
@@ -1791,6 +1795,7 @@ void main(){
     if (mob !== isMobile) { isMobile = mob; load(mob ? SRC.stack : SRC.wide); }
     var band = { top: 16, bottom: content.offsetTop - 8 };
     var rect = L.computeRect(w, h, aspect, band, LAYOUT);
+    lastRect = rect;
     img.style.left = rect.x + "px"; img.style.top = rect.y + "px";
     img.style.width = rect.w + "px"; img.style.height = rect.h + "px";
     hint.style.left = L.clamp(rect.x + rect.w / 2, 80, w - 80) + "px";
@@ -1828,8 +1833,8 @@ void main(){
   var canvas = document.createElement("canvas");
   canvas.className = "sh-canvas";
   stage.appendChild(canvas);
-  function fail() { root.dataset.gl = "off"; }
-  try { engine = new L.LiquidEngine(canvas, opts(rmq.matches), fail); } catch (e) { fail(); }
+  function fail(e) { root.dataset.gl = "off"; if (window.console) console.warn("[hero] liquid logo unavailable, showing the static logo.", e && e.message ? e.message : e || ""); }
+  try { engine = new L.LiquidEngine(canvas, opts(rmq.matches), fail); } catch (e) { fail(e); }
 
   if ("ResizeObserver" in window) {
     var ro = new ResizeObserver(relayout);
@@ -1837,10 +1842,10 @@ void main(){
   } else { window.addEventListener("resize", relayout); }
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (engine) engine.setVisible(e.isIntersecting && !document.hidden); });
+      es.forEach(function (e) { heroVisible = e.isIntersecting; if (engine) engine.setVisible(e.isIntersecting && !document.hidden); if (heroVisible) scheduleStir(); else cancelStir(); });
     }).observe(root);
   }
-  document.addEventListener("visibilitychange", function () { if (engine) engine.setVisible(!document.hidden); });
+  document.addEventListener("visibilitychange", function () { if (engine) engine.setVisible(!document.hidden); if (document.hidden) cancelStir(); else scheduleStir(); });
   if (rmq.addEventListener) rmq.addEventListener("change", function () { if (engine) engine.setOptions({ reducedMotion: rmq.matches }); });
 
   function pos(e) { var b = root.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; }
@@ -1851,14 +1856,42 @@ void main(){
     var p = pos(e); if (engine) engine.pointer("move", p[0], p[1], touch); touched();
   }, { passive: true });
   root.addEventListener("pointerdown", function (e) {
+    userTouching = true; cancelStir();
     var p = pos(e); if (engine) engine.pointer("down", p[0], p[1], e.pointerType === "touch"); touched();
   }, { passive: true });
-  function up(e) { var p = pos(e); if (engine) engine.pointer("up", p[0], p[1], e.pointerType === "touch"); }
+  function up(e) { userTouching = false; scheduleStir(); var p = pos(e); if (engine) engine.pointer("up", p[0], p[1], e.pointerType === "touch"); }
   root.addEventListener("pointerup", up, { passive: true });
   root.addEventListener("pointercancel", up, { passive: true });
   root.addEventListener("pointerleave", function (e) {
     var p = pos(e); if (engine) engine.pointer("leave", p[0], p[1], e.pointerType === "touch");
   }, { passive: true });
+
+  // Touch devices have no hover, so every few seconds a virtual pointer sweeps across the logo
+  // and stirs the liquid the way a mouse does on a computer. Pauses while the user touches, or when offscreen.
+  var heroVisible = true, userTouching = false, stirTimer = 0, stirRaf = 0, stirDir = 1;
+  var autoStir = coarse.matches && !rmq.matches;
+  function cancelStir() { clearTimeout(stirTimer); stirTimer = 0; if (stirRaf) { cancelAnimationFrame(stirRaf); stirRaf = 0; if (engine && lastRect) engine.pointer("leave", -100, -100, false); } }
+  function scheduleStir(delay) {
+    if (!autoStir) return;
+    clearTimeout(stirTimer);
+    stirTimer = setTimeout(stir, delay === undefined ? 7000 + Math.random() * 3000 : delay);
+  }
+  function stir() {
+    stirTimer = 0;
+    if (!engine || !lastRect || !heroVisible || userTouching || document.hidden || root.dataset.gl !== "on") { scheduleStir(3000); return; }
+    var r = lastRect, dur = 1500 + Math.random() * 500, t0 = performance.now(), dir = stirDir; stirDir = -stirDir;
+    var yBase = r.y + r.h * (0.3 + Math.random() * 0.4), amp = r.h * (0.15 + Math.random() * 0.15), pad = 50;
+    function step(now) {
+      var k = Math.min(1, (now - t0) / dur), e = k < 0.5 ? 2 * k * k : -1 + (4 - 2 * k) * k;
+      var x = dir > 0 ? r.x - pad + (r.w + 2 * pad) * e : r.x + r.w + pad - (r.w + 2 * pad) * e;
+      var y = yBase + Math.sin(k * Math.PI * 2) * amp;
+      engine.pointer("move", x, y, false);
+      if (k < 1) stirRaf = requestAnimationFrame(step);
+      else { stirRaf = 0; engine.pointer("leave", x, y, false); scheduleStir(); }
+    }
+    stirRaf = requestAnimationFrame(step);
+  }
+  scheduleStir(4500);
 
   relayout();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
@@ -2283,8 +2316,53 @@ void main(){
 })();
 </script>
 <script>
+/* GLPool: ONE shared WebGL2 context for all the small shader effects (induction buttons, metallic card rims).
+   Each effect renders into this offscreen canvas and the result is copied into its own plain 2D <canvas>.
+   Why: Android Chrome allows only 8 live WebGL contexts per page and silently kills the oldest ones
+   (the hero logo was the first victim). With the pool the page uses 2 contexts in total: the hero + this one. */
+window.GLPool = (function () {
+  var canvas = document.createElement("canvas");
+  var gl = null;
+  try { gl = canvas.getContext("webgl2", { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false }); } catch (e) { gl = null; }
+  if (!gl) return null;
+  var lost = false, restoreFns = [];
+  canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); lost = true; }, false);
+  canvas.addEventListener("webglcontextrestored", function () { lost = false; restoreFns.forEach(function (f) { try { f(); } catch (e) {} }); }, false);
+  function ensure(w, h) {
+    var cw = Math.max(canvas.width, w), ch = Math.max(canvas.height, h);
+    if (cw !== canvas.width || ch !== canvas.height) { canvas.width = cw; canvas.height = ch; }
+  }
+  /* Render with drawFn(gl, w, h) into a w×h viewport, then copy the pixels into `target` (a 2D canvas). */
+  function blit(target, w, h, drawFn) {
+    if (lost || !(w > 0) || !(h > 0)) return false;
+    ensure(w, h);
+    gl.viewport(0, 0, w, h);
+    gl.enable(gl.SCISSOR_TEST); gl.scissor(0, 0, w, h);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    drawFn(gl, w, h);
+    gl.disable(gl.SCISSOR_TEST);
+    var ctx = target.__ctx2d || (target.__ctx2d = target.getContext("2d"));
+    if (!ctx) return false;
+    if (target.width !== w || target.height !== h) { target.width = w; target.height = h; }
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(canvas, 0, canvas.height - h, w, h, 0, 0, w, h);   // GL draws from the bottom-left corner
+    return true;
+  }
+  function program(vs, fs) {
+    function mk(type, src) { var sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { if (window.console) console.error("[GLPool] shader:", gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null; } return sh; }
+    var v = mk(gl.VERTEX_SHADER, vs), f = mk(gl.FRAGMENT_SHADER, fs); if (!v || !f) return null;
+    var p = gl.createProgram(); gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
+    gl.deleteShader(v); gl.deleteShader(f);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { if (window.console) console.error("[GLPool] link:", gl.getProgramInfoLog(p)); gl.deleteProgram(p); return null; }
+    return p;
+  }
+  return { gl: gl, canvas: canvas, blit: blit, program: program, isLost: function () { return lost; }, onRestore: function (f) { restoreFns.push(f); } };
+})();
+</script>
+<script>
 /* Induction buttons: WebGL plate with electric arcs crawling around the edge (ported from the React "Induction Button").
-   Hover/focus = more arcs, click = flash. Falls back to a static dark button without WebGL. */
+   Hover/focus = more arcs, click = flash. v32: renders through the shared GLPool context (no per-button WebGL context);
+   falls back to a static dark button when WebGL is unavailable. */
 (function () {
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var VS = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
@@ -2320,7 +2398,20 @@ void main(){
     "}"
   ].join("\n");
 
-  function compile(gl, type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; }
+  var pool = window.GLPool, prog = null, buf = null, L = {};
+  function setup() {
+    if (!pool) return false;
+    var gl = pool.gl;
+    prog = pool.program(VS, FS); if (!prog) return false;
+    buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    L.p = gl.getAttribLocation(prog, "p");
+    L.res = gl.getUniformLocation(prog, "u_res"); L.time = gl.getUniformLocation(prog, "u_time");
+    L.arcs = gl.getUniformLocation(prog, "u_arcs"); L.flash = gl.getUniformLocation(prog, "u_flash");
+    return true;
+  }
+  var ok = setup();
+  if (pool) pool.onRestore(setup);
 
   function init(btn) {
     btn.classList.add("induction");
@@ -2329,40 +2420,34 @@ void main(){
     var label = document.createElement("span"); label.className = "ind-label";
     while (btn.childNodes.length > 1) label.appendChild(btn.childNodes[1]);
     btn.appendChild(label);
-    var gl = canvas.getContext("webgl", { alpha: true, antialias: true, premultipliedAlpha: true });
-    if (!gl) { btn.classList.add("ind-fallback"); return; }
-    var vs = compile(gl, gl.VERTEX_SHADER, VS), fs = compile(gl, gl.FRAGMENT_SHADER, FS);
-    if (!vs || !fs) { btn.classList.add("ind-fallback"); return; }
-    var prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog); gl.useProgram(prog);
-    var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    var locP = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(locP); gl.vertexAttribPointer(locP, 2, gl.FLOAT, false, 0, 0);
-    var uRes = gl.getUniformLocation(prog, "u_res"), uTime = gl.getUniformLocation(prog, "u_time"), uArcs = gl.getUniformLocation(prog, "u_arcs"), uFlash = gl.getUniformLocation(prog, "u_flash");
-    gl.clearColor(0, 0, 0, 0);
-    function resize() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
-    }
-    var arcs = 2.4, target = 2.4, flash = 0, crawl = 0, last = performance.now(), visible = true, running = false;
+    if (!ok) { btn.classList.add("ind-fallback"); return; }
+    var arcs = 2.4, target = 2.4, flash = 0, crawl = 0, last = performance.now(), visible = true, running = false, cw = 1, ch = 1;
     btn.addEventListener("mouseenter", function () { target = 5.8; });
     btn.addEventListener("mouseleave", function () { target = 2.4; });
     btn.addEventListener("focus", function () { target = 5.8; });
     btn.addEventListener("blur", function () { target = 2.4; });
     btn.addEventListener("click", function () { flash = 1; });
     btn.addEventListener("touchstart", function () { flash = 1; }, { passive: true });
+    function measure() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cw = Math.max(1, Math.round(canvas.clientWidth * dpr)); ch = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    }
+    function paint(gl, w, h) {
+      gl.disable(gl.BLEND);
+      gl.useProgram(prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.enableVertexAttribArray(L.p); gl.vertexAttribPointer(L.p, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(L.res, w, h); gl.uniform1f(L.time, reduced ? 3.0 : crawl);
+      gl.uniform1f(L.arcs, arcs); gl.uniform1f(L.flash, flash);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
     function frame(now) {
       if (!visible) { running = false; return; }
       var dt = Math.min(0.05, (now - last) / 1000); last = now;
       arcs += (target - arcs) * Math.min(1, dt * 5);
       flash *= Math.exp(-3.6 * dt);
       crawl += dt * (0.6 + (arcs / 6) * 1.1 + flash * 2.0);
-      resize();
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      gl.uniform1f(uTime, reduced ? 3.0 : crawl);
-      gl.uniform1f(uArcs, arcs); gl.uniform1f(uFlash, flash);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      measure();
+      pool.blit(canvas, cw, ch, paint);
       requestAnimationFrame(frame);
     }
     function start() { if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); } }
@@ -2370,14 +2455,15 @@ void main(){
       new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) start(); }).observe(btn);
     } else start();
     document.addEventListener("visibilitychange", function () { if (!document.hidden && visible) start(); });
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", measure);
   }
 
   Array.prototype.slice.call(document.querySelectorAll("[data-induction]")).forEach(init);
 })();
 </script>
 <script>
-/* Metallic cards: WebGL2 metal-sheen rim (shader from the React MetallicButton) around a black face. */
+/* Metallic cards: WebGL2 metal-sheen rim (shader from the React MetallicButton) around a white face.
+   v32: renders through the shared GLPool context instead of one WebGL context per card. */
 (function () {
   var VS = `#version 300 es
 precision mediump float;
@@ -2653,39 +2739,41 @@ void main() {
   var U = { colorBack: [0, 0, 0, 1], colorTint: [1, 1, 1, 1], repetition: 4, softness: 0.5, angle: 45, scale: 8, distortion: 0, shiftRed: 0.3, shiftBlue: 0.3 };
   var IDLE = 0.6, HOVER = 1, CLICK = 2.4;
 
-  function mk(gl, type, s) { var sh = gl.createShader(type); gl.shaderSource(sh, s); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(sh)); return null; } return sh; }
+  var pool = window.GLPool, prog = null, buf = null, L = {};
+  function setup() {
+    if (!pool) return false;
+    var gl = pool.gl;
+    prog = pool.program(VS, FS); if (!prog) return false;
+    buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+    L.pos = gl.getAttribLocation(prog, "a_position");
+    ["u_time","u_resolution","u_pixelRatio","u_colorBack","u_colorTint","u_softness","u_repetition","u_shiftRed","u_shiftBlue","u_distortion","u_contour","u_angle","u_originX","u_originY","u_worldWidth","u_worldHeight","u_fit","u_scale","u_rotation","u_offsetX","u_offsetY"].forEach(function (n) { L[n] = gl.getUniformLocation(prog, n); });
+    return true;
+  }
+  var ok = setup();
+  if (pool) pool.onRestore(setup);
 
   function mount(card) {
     card.classList.add("metal");
     var canvas = document.createElement("canvas"); canvas.className = "mt-rim"; canvas.setAttribute("aria-hidden", "true");
     var face = document.createElement("span"); face.className = "mt-face"; face.setAttribute("aria-hidden", "true");
     card.insertBefore(face, card.firstChild); card.insertBefore(canvas, card.firstChild);
-    var gl = canvas.getContext("webgl2", { antialias: true, premultipliedAlpha: true, alpha: true });
-    if (!gl) { card.classList.add("mt-fallback"); return; }
-    var v = mk(gl, gl.VERTEX_SHADER, VS), f = mk(gl, gl.FRAGMENT_SHADER, FS); if (!v || !f) { card.classList.add("mt-fallback"); return; }
-    var p = gl.createProgram(); gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { card.classList.add("mt-fallback"); return; }
-    gl.useProgram(p);
-    var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
-    var pos = gl.getAttribLocation(p, "a_position"); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    var L = {}; ["u_time","u_resolution","u_pixelRatio","u_colorBack","u_colorTint","u_softness","u_repetition","u_shiftRed","u_shiftBlue","u_distortion","u_contour","u_angle","u_originX","u_originY","u_worldWidth","u_worldHeight","u_fit","u_scale","u_rotation","u_offsetX","u_offsetY"].forEach(function (n) { L[n] = gl.getUniformLocation(p, n); });
-    var scale = 1, speed = reduced ? 0 : IDLE, frame = 0, last = performance.now(), raf = 0, inView = true;
+    if (!ok) { card.classList.add("mt-fallback"); return; }
+    var scale = 1, speed = reduced ? 0 : IDLE, frame = 0, last = performance.now(), raf = 0, inView = true, tw = 0, th = 0;
     function resize() {
       var w = card.clientWidth, h = card.clientHeight; if (!w || !h) return;
       var dpr = Math.max(1, window.devicePixelRatio || 1), rs = Math.min(2, Math.max(dpr, 1.5));
-      var tw = Math.round(w * rs), th = Math.round(h * rs), cap = Math.min(1, Math.sqrt(1920 * 1080) / Math.sqrt(tw * th));
-      tw = Math.round(tw * cap); th = Math.round(th * cap);
-      if (canvas.width === tw && canvas.height === th) return;
-      canvas.width = tw; canvas.height = th; scale = tw / w; gl.viewport(0, 0, tw, th); draw(performance.now());
+      var nw = Math.round(w * rs), nh = Math.round(h * rs), cap = Math.min(1, Math.sqrt(1920 * 1080) / Math.sqrt(nw * nh));
+      nw = Math.round(nw * cap); nh = Math.round(nh * cap);
+      if (tw === nw && th === nh) return;
+      tw = nw; th = nh; scale = tw / w; draw(performance.now());
     }
-    function draw(now) {
-      var dt = now - last; last = now;
-      if (speed && inView) frame += dt * speed;
-      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(p);
+    function paint(gl, w, h) {
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.enableVertexAttribArray(L.pos); gl.vertexAttribPointer(L.pos, 2, gl.FLOAT, false, 0, 0);
       gl.uniform1f(L.u_time, frame * 1e-3);
-      gl.uniform2f(L.u_resolution, canvas.width, canvas.height); gl.uniform1f(L.u_pixelRatio, scale);
+      gl.uniform2f(L.u_resolution, w, h); gl.uniform1f(L.u_pixelRatio, scale);
       gl.uniform4fv(L.u_colorBack, U.colorBack); gl.uniform4fv(L.u_colorTint, U.colorTint);
       gl.uniform1f(L.u_repetition, U.repetition); gl.uniform1f(L.u_softness, U.softness); gl.uniform1f(L.u_angle, U.angle);
       gl.uniform1f(L.u_distortion, U.distortion); gl.uniform1f(L.u_shiftRed, U.shiftRed); gl.uniform1f(L.u_shiftBlue, U.shiftBlue);
@@ -2693,6 +2781,12 @@ void main() {
       gl.uniform1f(L.u_offsetX, 0.1); gl.uniform1f(L.u_offsetY, -0.1); gl.uniform1f(L.u_originX, 0.5); gl.uniform1f(L.u_originY, 0.5);
       gl.uniform1f(L.u_worldWidth, 0); gl.uniform1f(L.u_worldHeight, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.disable(gl.BLEND);
+    }
+    function draw(now) {
+      var dt = now - last; last = now;
+      if (speed && inView) frame += dt * speed;
+      if (tw && th) pool.blit(canvas, tw, th, paint);
       raf = (speed && inView) ? requestAnimationFrame(draw) : 0;
     }
     function run() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(draw); } }
