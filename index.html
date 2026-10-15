@@ -889,6 +889,27 @@ footer .foot-links a:hover { color: var(--accent); }
 .sh-root[data-gl="off"] .sh-fallback { animation: shFloat 6s ease-in-out infinite; }
 @keyframes shFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .sh-root[data-gl="off"] .sh-fallback { animation: none; } }
+/* ===== v34: phone header = section menu instead of the logo (the hero shows the logo right below) ===== */
+.nav-links .nav-short { display: none; }
+@media (max-width: 640px) {
+  .site-head .brand { display: none; }
+  .site-head .wrap { padding-block: 8px; gap: 10px; }
+  .site-head nav { flex: 1 1 auto; min-width: 0; }
+  .site-head .nav-links { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity; padding: 2px 0; margin: 0 -4px; padding-inline: 4px 32px;   /* room at the end so the last pill clears the fade */
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent); }
+  .site-head .nav-links::-webkit-scrollbar { display: none; }
+  .site-head .nav-links li { flex: none; scroll-snap-align: start; }
+  .site-head .nav-links a { display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: #fff; color: var(--fg); font-size: 13.5px; font-weight: 600; white-space: nowrap; line-height: 1; -webkit-tap-highlight-color: transparent;
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease; }
+  .site-head .nav-links a::after { display: none; }
+  .site-head .nav-links a:active { transform: scale(.97); }
+  .site-head .nav-links a.is-active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 6px 16px -8px rgba(14,117,102,.6); }
+  .nav-links .nav-long { display: none; }
+  .nav-links .nav-short { display: inline; }
+}
+@media (max-width: 640px) and (min-width: 421px) { .site-head .btn.induction { flex: none; } }
 </style>
 </head>
 <body>
@@ -913,7 +934,7 @@ footer .foot-links a:hover { color: var(--accent); }
         <li><a href="#about">เกี่ยวกับเรา</a></li>
         <li><a href="#team">ทีมงาน</a></li>
         <li><a href="#how">วิธีการเรียนรู้</a></li>
-        <li><a href="#projects">โครงการของเรา</a></li>
+        <li><a href="#projects"><span class="nav-long">โครงการของเรา</span><span class="nav-short">โครงการ</span></a></li>
         <li><a href="#contact">ติดต่อ</a></li>
       </ul>
     </nav>
@@ -3048,6 +3069,25 @@ void main() {
   }
   fit(); new ResizeObserver(fit).observe(root);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+</script>
+<script>
+/* phone menu: keep the highlighted section pill in view as the page scrolls */
+(function () {
+  var ul = document.querySelector(".site-head .nav-links"); if (!ul) return;
+  var mq = window.matchMedia("(max-width: 640px)"), pending = 0;
+  function reveal() {
+    pending = 0;
+    if (!mq.matches) return;
+    var a = ul.querySelector("a.is-active"); if (!a) return;
+    var li = a.parentNode, left = li.offsetLeft - (ul.clientWidth - li.offsetWidth) / 2;
+    left = Math.max(0, Math.min(left, ul.scrollWidth - ul.clientWidth));
+    if (Math.abs(ul.scrollLeft - left) < 2) return;
+    try { ul.scrollTo({ left: left, behavior: "smooth" }); } catch (e) { ul.scrollLeft = left; }
+  }
+  new MutationObserver(function () { if (!pending) pending = setTimeout(reveal, 80); }).observe(ul, { attributes: true, subtree: true, attributeFilter: ["class"] });
+  window.addEventListener("resize", function () { if (!pending) pending = setTimeout(reveal, 120); });
+  reveal();
 })();
 </script>
 </body>
