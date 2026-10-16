@@ -1594,6 +1594,22 @@ body.pr-lock { overflow: hidden; }
 .rb-say::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px; margin-left: -4px; background: #0C100F; border-radius: 1px; transform: rotate(45deg); }
 @media (prefers-reduced-motion: reduce) { .rb *, .rb-say { animation: none !important; transition: none !important; } }
 @media print { .rb, .rb-say, .rb-shadow { display: none !important; } }
+/* ===== v49: a robot peeks over the top edge of a box when the pointer / a finger passes over it ===== */
+.pk-win { position: absolute; left: 0; top: 0; z-index: 3; overflow: hidden; pointer-events: none; transform-origin: 50% 100%; }
+.pk-bot { position: absolute; left: 0; top: 0; width: 100%; transform: translateY(105%); transition: transform .24s cubic-bezier(.5,0,.75,0) .05s; will-change: transform; }
+.pk-win.on .pk-bot { transform: translateY(0); transition: transform .5s cubic-bezier(.34,1.56,.64,1) .04s; }
+.pk-tilt { transform-origin: 50% 100%; transition: transform .35s ease; }
+.pk-svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0 .6px rgba(255,255,255,.9)); }
+.pk-eyes { transition: transform .18s ease-out; }
+.pk-blink { transform-box: fill-box; transform-origin: 50% 50%; animation: rbBlink 3.2s infinite; }
+.pk-ant { transform-box: fill-box; transform-origin: 50% 100%; animation: pkAnt 1.6s ease-in-out infinite; }
+.pk-hand { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; border-radius: 45% 45% 38% 38% / 60% 60% 40% 40%; background: #F2F4ED; border: 3px solid #0C100F; box-sizing: border-box;
+  box-shadow: 0 0 0 .6px rgba(255,255,255,.9); transform: rotate(var(--pk-rot, 0deg)) scale(0); transition: transform .12s ease-in; }
+.pk-hand.on { transform: rotate(var(--pk-rot, 0deg)) scale(1); transition: transform .32s cubic-bezier(.34,1.8,.64,1) .2s; }
+.pk-hand::before, .pk-hand::after { content: ""; position: absolute; top: 18%; height: 46%; width: 2.6px; border-radius: 2px; background: rgba(12,16,15,.6); }
+.pk-hand::before { left: 33%; } .pk-hand::after { left: 62%; }
+@keyframes pkAnt { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@media (prefers-reduced-motion: reduce) { .pk-bot, .pk-win.on .pk-bot, .pk-hand, .pk-hand.on { transition-duration: .01s; } .pk-ant, .pk-blink { animation: none; } }
 </style>
 </head>
 <body>
@@ -4447,6 +4463,150 @@ window.GlassFolder = (function () {
     if (mode === "hurt" && hurt) hurt.x = clamp(hurt.x, BH / 2 + 4, W - BH / 2 - 4);
     if (mode === "fall" || mode === "held") { C.x = clamp(C.x, 0, W); C.y = Math.min(C.y, H); }
   });
+})();
+</script>
+<script>
+/* Peeking robot: hover (mouse) or drag a finger across a box and the robot rises from behind one of its edges,
+   showing half its face, hands on the edge, eyes following the pointer; it ducks back when the pointer leaves.
+   Where it pops up is drawn from a shuffled bag of spots per box (top left/centre/right, left and right sides
+   when there is room), so it never shows up in the same spot twice in a row and
+   uses every spot before any spot comes round again. */
+(function () {
+  var SEL = ".about-grid > .placeholder, .steps > .placeholder, .gz-extras > .placeholder, .contact > .placeholder";
+  var cards = Array.prototype.slice.call(document.querySelectorAll(SEL));
+  if (!cards.length) return;
+  var HEAD =
+    '<svg class="pk-svg" viewBox="1 -2 44 40" aria-hidden="true" focusable="false">' +
+    '<g class="pk-ant"><path class="rb-limb rb-thin" d="M23 9.5V4"/><circle class="rb-tip" cx="23" cy="2.6" r="2.8"/></g>' +
+    '<rect class="rb-ink" x="3.5" y="15.5" width="4" height="9" rx="1.6"/><rect class="rb-ink" x="38.5" y="15.5" width="4" height="9" rx="1.6"/>' +
+    '<rect class="rb-skull" x="6.5" y="9" width="33" height="22" rx="8"/>' +
+    '<rect class="rb-screen" x="10.5" y="12.8" width="25" height="14.8" rx="5"/>' +
+    '<g class="pk-eyes"><g class="pk-blink"><rect class="rb-eye" x="16.6" y="16.4" width="3.8" height="6" rx="1.9"/><rect class="rb-eye" x="25.6" y="16.4" width="3.8" height="6" rx="1.9"/></g></g>' +
+    '<rect class="rb-ink" x="20" y="29.5" width="6" height="4.5"/><rect class="rb-body" x="10" y="33" width="26" height="15.5" rx="5.5"/>' +
+    '</svg>';
+  var VIS = 25.5;                                                   // head units shown past the edge: antenna, forehead and eyes
+  function scale() { return window.innerWidth < 640 ? 1.47 : 1.89; }   // v51: 30% smaller than v50
+  // spots: which edge, how far along it (0..1), rotation of the robot (its "up" points out of the box)
+  var SPOTS = [
+    { e: "top", t: .2, a: 0 }, { e: "top", t: .5, a: 0 }, { e: "top", t: .8, a: 0 },
+    { e: "left", t: .42, a: -90 }, { e: "right", t: .42, a: 90 }                   // v52: no bottom spots
+  ];
+
+  function make(container) {
+    if (container._pk) return container._pk;
+    if (getComputedStyle(container).position === "static") container.style.position = "relative";
+    var win = document.createElement("span"); win.className = "pk-win"; win.setAttribute("aria-hidden", "true");
+    win.innerHTML = '<span class="pk-bot"><span class="pk-tilt">' + HEAD + "</span></span>";
+    var hl = document.createElement("span"), hr = document.createElement("span");
+    hl.className = hr.className = "pk-hand"; hl.setAttribute("aria-hidden", "true"); hr.setAttribute("aria-hidden", "true");
+    container.appendChild(win); container.appendChild(hl); container.appendChild(hr);
+    var pk = { c: container, win: win, hl: hl, hr: hr, tilt: win.querySelector(".pk-tilt"), eyes: win.querySelector(".pk-eyes"), card: null, spot: null, t: .5, on: false, hideT: 0, offT: 0 };
+    container._pk = pk; return pk;
+  }
+
+  // does this spot fit: the head and hands stay on the edge, and a side peek stays inside the window
+  function fits(spot, r) {
+    var s = scale(), span = 2 * (21 * s + 6.5 * s) + 8, depth = VIS * s + 4, W = document.documentElement.clientWidth;
+    var len = (spot.e === "top" || spot.e === "bottom") ? r.width : r.height;
+    if (len < span) return false;
+    if (spot.e === "left") return r.left - depth >= 4;
+    if (spot.e === "right") return r.right + depth <= W - 4;
+    return true;
+  }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // next spot for this box from its shuffled bag; a fresh bag never starts with the spot just used
+  function nextSpot(card) {
+    var r = card.getBoundingClientRect();
+    for (var tries = 0; tries < 2 * SPOTS.length; tries++) {
+      if (!card._pkBag || !card._pkBag.length) {
+        card._pkBag = shuffle(SPOTS.map(function (_, i) { return i; }));
+        if (card._pkBag.length > 1 && card._pkBag[card._pkBag.length - 1] === card._pkLast) card._pkBag.unshift(card._pkBag.pop());
+      }
+      var i = card._pkBag.pop();
+      if (i !== card._pkLast && fits(SPOTS[i], r)) { card._pkLast = i; return SPOTS[i]; }
+    }
+    return SPOTS[1];
+  }
+
+  var active = null, raf = 0, gone = [];
+  function place(pk) {
+    var s = scale(), w = 44 * s, hWin = VIS * s + 2, sp = pk.spot, A = sp.a * Math.PI / 180;
+    var cr = pk.c.getBoundingClientRect(), r = pk.card.getBoundingClientRect(), L = r.left - cr.left, T = r.top - cr.top;
+    var len = (sp.e === "top" || sp.e === "bottom") ? r.width : r.height, m = (21 * s + 6.5 * s + 4) / len;
+    var t = Math.max(m, Math.min(1 - m, pk.t)), ax, ay;
+    if (sp.e === "top") { ax = L + r.width * t; ay = T; }
+    else if (sp.e === "bottom") { ax = L + r.width * t; ay = T + r.height; }
+    else if (sp.e === "left") { ax = L; ay = T + r.height * t; }
+    else { ax = L + r.width; ay = T + r.height * t; }
+    // the window's bottom centre sits on the edge; it is turned so the robot's "up" points out of the box
+    pk.win.style.width = w + "px"; pk.win.style.height = hWin + "px";
+    pk.win.style.transform = "translate(" + (ax - w / 2).toFixed(1) + "px," + (ay - hWin + 1).toFixed(1) + "px) rotate(" + sp.a + "deg)";
+    var dw = 13 * s, dh = 10 * s, gx = 21 * s, nx = Math.sin(A), ny = -Math.cos(A), tx = Math.cos(A), ty = Math.sin(A);
+    [pk.hl, pk.hr].forEach(function (h, i) {
+      var k = i ? gx : -gx, cx = ax + tx * k + nx * .05 * dh, cy = ay + ty * k + ny * .05 * dh;
+      h.style.width = dw + "px"; h.style.height = dh + "px";
+      h.style.left = (cx - dw / 2).toFixed(1) + "px"; h.style.top = (cy - dh / 2).toFixed(1) + "px";
+      h.style.setProperty("--pk-rot", sp.a + "deg");
+    });
+    pk.cx = cr.left + ax; pk.cy = cr.top + ay;
+  }
+  function loop() {
+    raf = 0; var any = false;
+    [active].concat(gone).forEach(function (pk) { if (pk && pk.card && pk.spot) { place(pk); any = true; } });
+    if (any) raf = requestAnimationFrame(loop);
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+
+  function show(card, px, py) {
+    var pk = make(card.parentNode);
+    clearTimeout(pk.hideT); clearTimeout(pk.offT);
+    if (active && active !== pk) hide(active, 0);
+    if (pk.card !== card || !pk.on) {
+      if (pk.on) { pk.win.classList.remove("on"); pk.hl.classList.remove("on"); pk.hr.classList.remove("on"); }
+      pk.card = card; pk.spot = nextSpot(card);
+      pk.t = pk.spot.t + (Math.random() - .5) * .12;               // a little jitter along the edge as well
+      pk.tilt0 = (Math.random() - .5) * 10;
+      gone = gone.filter(function (g) { return g !== pk; });
+      place(pk);
+      void pk.win.offsetWidth;
+      pk.win.classList.add("on"); pk.hl.classList.add("on"); pk.hr.classList.add("on"); pk.on = true;
+    }
+    active = pk; look(pk, px, py); kick();
+  }
+  function look(pk, px, py) {
+    if (!pk || !pk.on || pk.cx == null) return;
+    var A = (pk.spot ? pk.spot.a : 0) * Math.PI / 180, ux = px - pk.cx, uy = py - pk.cy;
+    var lx = ux * Math.cos(A) + uy * Math.sin(A), ly = -ux * Math.sin(A) + uy * Math.cos(A);   // pointer in the robot's own frame
+    var dx = Math.max(-1, Math.min(1, lx / 140)), dy = Math.max(-1, Math.min(1, ly / 160));
+    pk.eyes.style.transform = "translate(" + (dx * 2.4).toFixed(2) + "px," + (dy * 1.3).toFixed(2) + "px)";
+    pk.tilt.style.transform = "rotate(" + ((pk.tilt0 || 0) + dx * 7).toFixed(1) + "deg)";
+  }
+  function hide(pk, delay) {
+    if (!pk) return;
+    clearTimeout(pk.hideT);
+    pk.hideT = setTimeout(function () {
+      pk.on = false; pk.win.classList.remove("on"); pk.hl.classList.remove("on"); pk.hr.classList.remove("on");
+      if (active === pk) active = null;
+      gone.push(pk); kick();
+      pk.offT = setTimeout(function () { gone = gone.filter(function (g) { return g !== pk; }); if (!pk.on) pk.card = null; }, 450);
+    }, delay);
+  }
+
+  // mouse / pen: hover a box
+  cards.forEach(function (card) {
+    card.addEventListener("pointerenter", function (e) { if (e.pointerType !== "touch") show(card, e.clientX, e.clientY); });
+    card.addEventListener("pointermove", function (e) { if (e.pointerType !== "touch" && active && active.card === card) look(active, e.clientX, e.clientY); });
+    card.addEventListener("pointerleave", function (e) { if (e.pointerType !== "touch" && active && active.card === card) hide(active, 120); });
+  });
+  // touch: a finger on or dragging across a box (touch events keep coming while the page scrolls)
+  function touchAt(t) {
+    var el = document.elementFromPoint(t.clientX, t.clientY), card = el && el.closest ? el.closest(SEL) : null;
+    if (card) show(card, t.clientX, t.clientY); else if (active) hide(active, 500);
+  }
+  document.addEventListener("touchstart", function (e) { if (e.touches.length === 1) touchAt(e.touches[0]); }, { passive: true });
+  document.addEventListener("touchmove", function (e) { if (e.touches.length === 1) touchAt(e.touches[0]); }, { passive: true });
+  document.addEventListener("touchend", function () { if (active) hide(active, 1600); }, { passive: true });
+  window.addEventListener("resize", function () { if (active) kick(); });
 })();
 </script>
 </body>
